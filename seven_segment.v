@@ -20,10 +20,12 @@
 //////////////////////////////////////////////////////////////////////////////////
 module seven_segment(
     input clk,
+	 input reset,
 	 input [19:0] big_bin,
 	 reg [4:0] seven_in,
 	 output reg [3:0] AN,
-	 output [6:0] seven_out
+	 output [6:0] seven_out,
+	 wire slower_clock
     );
 
 	initial begin // Initial block , used for correct simulations
@@ -34,10 +36,11 @@ module seven_segment(
 	
 
 binary_to_segment disp0(seven_in,seven_out);		//tranlate to 7 LED values
+clk_divider(clk, reset, slower_clock);
 
 //Always block is missing...
 // Also count value is operating in very  high frequency? Think about how to fix it!
-always @(posedge clk) begin
+always @(posedge slower_clock) begin
 	count <= count + 1;
 	case (count)
 	 0: begin 
