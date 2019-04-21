@@ -44,6 +44,7 @@ parameter blank = 5'b10011;
 //parameter CHANGING = 5'b10100; // make cases for this
 reg CHANGING = 0;
 integer isbackdoor = 0;
+reg [5:0] backdoor_count = 6'b000000;
 
 wire ent_out;
 wire clr_out;
@@ -64,32 +65,38 @@ debouncer bounce_backdoor(clk, rst, backdoor, backdoor_out);
 	begin
 		// your code goes here
 		if(rst==1) begin
-		current_state <= LOCKED;
+			current_state <= LOCKED;
+			//backdoor_count <= 0;
 		end
-		else
-			begin
-		current_state <= next_state;
-			end
+		else begin
+			current_state <= next_state;
+		end
 	end
 	
 
 	// combinational part - next state definitions
 	always @ (*)
 	begin
-		led = current_state;
+		led = backdoor_count; //current_state;
 
 	// LOCKED MODE
 		if(current_state == LOCKED)
 		begin
 		CHANGING = 0; // make sure changing is reset
-			//assign password[15:0]=16'b0000000000000000;
-			// your code goes here
 			if(ent_out == 1)
 				next_state = GETFIRSTDIGIT_LOCKED;
 			else if (clr_out == 1)
 				next_state = GETFIRSTDIGIT_LOCKED;
-			else if (backdoor_out == 1 && sw[7:4] == 4'b1010)
-				next_state = BACKDOOR;
+			else if (backdoor_out == 1 && sw[7:4] == 4'b1010) begin
+				backdoor_count = backdoor_count + 6'b000001;
+				if (backdoor_count >= 6'b111100) begin // every button press increases by about 8 each time for some reason
+					next_state = BACKDOOR;
+					backdoor_count = 6'b000000;
+				end
+				else begin
+					backdoor_count = backdoor_count + 6'b000000;
+				end
+			end
 			else 
 				next_state = current_state;
 		end
@@ -136,8 +143,10 @@ debouncer bounce_backdoor(clk, rst, backdoor, backdoor_out);
 		
 	// BACKDOOR
 		else if (current_state == BACKDOOR) begin
-			if (ent_out == 1)
+			if (ent_out == 1) begin
+				backdoor_count = 0;
 				next_state = LOCKED;
+			end
 			else
 				next_state = current_state;
 		end
