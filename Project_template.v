@@ -43,6 +43,7 @@ parameter tire = 5'b10010;
 parameter blank = 5'b10011;
 //parameter CHANGING = 5'b10100; // make cases for this
 reg CHANGING = 0;
+integer isbackdoor = 0;
 
 wire ent_out;
 wire clr_out;
@@ -216,10 +217,12 @@ debouncer bounce_backdoor(clk, rst, backdoor, backdoor_out);
 			begin
 			 	//password[15:0] <= 16'b0000000000000000; // Built in reset is 0, when user in LOCKED state.
 				 // you may need to add extra things here.
+				 isbackdoor <= 0;
 			end
 		
 			else if(current_state == GETFIRSTDIGIT_LOCKED)
 			begin
+				isbackdoor <= 0;
 				if(ent_out == 1)
 					inpassword[15:12] <= sw[3:0]; // inpassword is the password entered by user, first 4 digits will be equal to current switch values
 				else if (clr_out == 1) begin
@@ -270,6 +273,7 @@ debouncer bounce_backdoor(clk, rst, backdoor, backdoor_out);
 			else if (current_state == BACKDOOR) begin
 				password <= 16'b0000001100010001;
 				inpassword <= 16'b0000000000000000;
+				isbackdoor <= 1;
 			end
 			
 			else if (current_state == UNLOCKED) begin
@@ -339,7 +343,7 @@ debouncer bounce_backdoor(clk, rst, backdoor, backdoor_out);
 
 	// Sequential part for outputs; this part is responsible from outputs; i.e. SSD and LEDS
 		// SEVEN_SEGMENT
-	seven_segment SSD(clk, rst, ssd, AN, seven_out);
+	seven_segment SSD(clk, rst, ssd, AN, seven_out, isbackdoor);
 	
 	always @(posedge clk)
 	begin
