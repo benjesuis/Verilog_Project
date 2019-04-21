@@ -8,7 +8,7 @@
 	output reg [19:0] ssd,
 	output [3:0]AN,
 	output [6:0] seven_out,
-    input [3:0] sw
+    input [7:0] sw
 	 ); 
 
 //registers
@@ -88,7 +88,7 @@ debouncer bounce_backdoor(clk, rst, backdoor, backdoor_out);
 				next_state = GETFIRSTDIGIT_LOCKED;
 			else if (clr_out == 1)
 				next_state = GETFIRSTDIGIT_LOCKED;
-			else if (backdoor_out == 1)
+			else if (backdoor_out == 1 && sw[7:4] == 4'b1010)
 				next_state = BACKDOOR;
 			else 
 				next_state = current_state;
