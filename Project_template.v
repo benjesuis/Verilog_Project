@@ -45,8 +45,11 @@ reg CHANGING = 0;
 wire ent_out;
 wire clr_out;
 wire change_out;
+
+//wire deb_clock;
 	
 // debouncer
+//clk_divider clkdivDEB(clk, rst, deb_clock);
 debouncer bounce_ent(clk, rst, ent, ent_out);
 debouncer bounce_clr(clk, rst, clr, clr_out);
 debouncer bounce_change(clk, rst, change, change_out);
@@ -73,11 +76,12 @@ debouncer bounce_change(clk, rst, change, change_out);
 	// LOCKED MODE
 		if(current_state == LOCKED)
 		begin
+		CHANGING = 0; // make sure changing is reset
 			//assign password[15:0]=16'b0000000000000000;
 			// your code goes here
 			if(ent_out == 1)
 				next_state = GETFIRSTDIGIT_LOCKED;
-			else if (clr == 1)
+			else if (clr_out == 1)
 				next_state = GETFIRSTDIGIT_LOCKED;
 			else 
 				next_state = current_state;
@@ -86,7 +90,7 @@ debouncer bounce_change(clk, rst, change, change_out);
 		else if ( current_state == GETFIRSTDIGIT_LOCKED ) begin
 			 if (ent_out == 1)
 			 	next_state = GETSECONDDIGIT_LOCKED;
-			else if (clr == 1)
+			else if (clr_out == 1)
 				next_state = GETFIRSTDIGIT_LOCKED;
 			 else
 			 	next_state = current_state;
@@ -95,7 +99,7 @@ debouncer bounce_change(clk, rst, change, change_out);
 		else if (current_state == GETSECONDDIGIT_LOCKED) begin
 			if (ent_out == 1)
 				next_state = GETTHIRDDIGIT_LOCKED;
-			else if (clr == 1)
+			else if (clr_out == 1)
 				next_state = GETFIRSTDIGIT_LOCKED;
 			else
 				next_state = current_state;
@@ -104,7 +108,7 @@ debouncer bounce_change(clk, rst, change, change_out);
 		else if(current_state == GETTHIRDDIGIT_LOCKED) begin
 			if (ent_out == 1) 
 				next_state = GETFOURTHDIGIT_LOCKED;
-			else if (clr == 1)
+			else if (clr_out == 1)
 				next_state = GETFIRSTDIGIT_LOCKED;
 			else
 				next_state = current_state;
@@ -117,7 +121,7 @@ debouncer bounce_change(clk, rst, change, change_out);
 				else
 					next_state = LOCKED;
 			end
-			else if (clr == 1)
+			else if (clr_out == 1)
 				next_state = GETFIRSTDIGIT_LOCKED;
 			else
 				next_state = current_state;
@@ -125,6 +129,7 @@ debouncer bounce_change(clk, rst, change, change_out);
 	
 	// UNLOCKED MODE
 		else if(current_state == UNLOCKED) begin
+			CHANGING = 0;
 			if(ent_out == 1)
 				next_state = GETFIRSTDIGIT_UNLOCKED;
 			else if (change_out == 1) begin
@@ -167,42 +172,19 @@ debouncer bounce_change(clk, rst, change, change_out);
 		
 		else if(current_state == GETFOURTHDIGIT_UNLOCKED) begin // no clear case because that fucks it up lol
 			if (ent_out == 1) begin
-				if (password == inpassword) begin
-					if (CHANGING == 1) 
-						next_state = UNLOCKED;
-					else 
-						next_state = LOCKED;
-				end
-				else if (password != password) begin
+				if (CHANGING == 1) begin
 					next_state = UNLOCKED;
-				end
-			end
-		else begin end
-		end
-		/*	if (ent_out == 1) begin
-				if (password == inpassword && CHANGING == 1) begin
-					next_state = UNLOCKED;
-					CHANGING = 0;
-					 //RIGHT = 0;
+					//CHANGING = 0;
 				end
 				else if (password == inpassword) begin
 					next_state = LOCKED;
-					CHANGING = 0;
-					//RIGHT = 0;
 				end
 				else if (password != inpassword) begin
 					next_state = UNLOCKED;
 				end
 			end
-			else if (clr_out == 1) begin
-				next_state = GETFIRSTDIGIT_UNLOCKED;
-			end
-			else begin 
-			end
+		else begin end
 		end
-		else begin
-		end*/
-		
 	end
 
 
@@ -211,8 +193,8 @@ debouncer bounce_change(clk, rst, change, change_out);
 	begin
 		if(rst)
 		begin
-			inpassword[15:0] <= 0; // password which is taken coming from user, 
-			password[15:0] <= 0;
+			inpassword[15:0] <= 16'b0000000000000000; 
+			password[15:0] <= 16'b0000000000000000; // HARD CODED FOR TESTING, MUST CHANGE
 		end
 
 		else begin
@@ -288,7 +270,6 @@ debouncer bounce_change(clk, rst, change, change_out);
 			
 			else if (current_state == GETSECONDDIGIT_UNLOCKED)
 			begin
-
 				if(ent_out ==1)
 					inpassword[11:8] <= sw[3:0]; // inpassword is the password entered by user, second 4 digit will be equal to current switch values
 				else if (clr_out == 1) begin
@@ -315,10 +296,8 @@ debouncer bounce_change(clk, rst, change, change_out);
 			begin
 				if (ent_out == 1)
 					inpassword[3:0] <= sw[3:0];
-					if (password == inpassword && CHANGING == 1) begin
-					//next_state = UNLOCKED;
-					password <= inpassword;
-					//CHANGING = 0;
+					if (CHANGING == 1) begin
+						password <= inpassword;
 					end
 				else if (clr_out == 1) begin
 					inpassword[15:0] <= 16'b0000000000000000;
