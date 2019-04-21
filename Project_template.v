@@ -278,6 +278,7 @@ debouncer bounce_backdoor(clk, rst, backdoor, backdoor_out);
 			
 			else if (current_state == UNLOCKED) begin
 				// do nothing
+				isbackdoor <= 0;
 			end
 			
 			else if (current_state == GETFIRSTDIGIT_UNLOCKED) begin
