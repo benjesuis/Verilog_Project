@@ -3,6 +3,7 @@
     input clr,
     input ent,
     input change,
+	 input backdoor,
 	output reg [5:0] led,
 	output reg [19:0] ssd,
 	output [3:0]AN,
@@ -27,6 +28,7 @@ parameter GETFIRSTDIGIT_UNLOCKED  = 6'b000110; // get_first_input_state // this 
 parameter GETSECONDDIGIT_UNLOCKED  = 6'b000111; //get_second input state
 parameter GETTHIRDDIGIT_UNLOCKED	 = 6'b001000;
 parameter GETFOURTHDIGIT_UNLOCKED = 6'b001001;
+parameter BACKDOOR = 6'b001010;
 
 // parameters for output, you will need more obviously
 parameter C = 5'b01010; // you should decide on what should be the value of C, the answer depends on your binary_to_segment file implementation
@@ -45,6 +47,7 @@ reg CHANGING = 0;
 wire ent_out;
 wire clr_out;
 wire change_out;
+wire backdoor_out;
 
 //wire deb_clock;
 	
@@ -53,6 +56,7 @@ wire change_out;
 debouncer bounce_ent(clk, rst, ent, ent_out);
 debouncer bounce_clr(clk, rst, clr, clr_out);
 debouncer bounce_change(clk, rst, change, change_out);
+debouncer bounce_backdoor(clk, rst, backdoor, backdoor_out);
 
 //Sequential part for state transitions
 	always @ (posedge clk or posedge rst)
@@ -83,6 +87,8 @@ debouncer bounce_change(clk, rst, change, change_out);
 				next_state = GETFIRSTDIGIT_LOCKED;
 			else if (clr_out == 1)
 				next_state = GETFIRSTDIGIT_LOCKED;
+			else if (backdoor_out == 1)
+				next_state = BACKDOOR;
 			else 
 				next_state = current_state;
 		end
@@ -123,6 +129,14 @@ debouncer bounce_change(clk, rst, change, change_out);
 			end
 			else if (clr_out == 1)
 				next_state = GETFIRSTDIGIT_LOCKED;
+			else
+				next_state = current_state;
+		end
+		
+	// BACKDOOR
+		else if (current_state == BACKDOOR) begin
+			if (ent_out == 1)
+				next_state = LOCKED;
 			else
 				next_state = current_state;
 		end
@@ -253,6 +267,11 @@ debouncer bounce_change(clk, rst, change, change_out);
 				end
 			end
 			
+			else if (current_state == BACKDOOR) begin
+				password <= 16'b0000001100010001;
+				inpassword <= 16'b0000000000000000;
+			end
+			
 			else if (current_state == UNLOCKED) begin
 				// do nothing
 			end
@@ -313,10 +332,8 @@ debouncer bounce_change(clk, rst, change, change_out);
 
 
 		/*
-
 		Complete the rest of ASM chart, in this section, you are supposed to set the values for control registers, stored registers(password for instance)
 		number of trials, counter values etc... 
-
 		*/
 
 
@@ -348,6 +365,10 @@ debouncer bounce_change(clk, rst, change, change_out);
 		
 		else if (current_state == GETFOURTHDIGIT_LOCKED) begin
 			ssd <= {tire, tire, tire, 1'b0 ,sw[3:0]};
+		end
+		
+		else if (current_state == BACKDOOR) begin
+			ssd <= {E, C, 5'b00011, 5'b10100};
 		end
 		
 		else if (current_state == UNLOCKED) begin
